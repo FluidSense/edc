@@ -1,8 +1,17 @@
-package = []
+[[package]]
+name = "ordered-set"
+version = "4.0.2"
+description = "A set that remembers its order, and allows looking up its items by their index in that order."
+category = "main"
+optional = false
+python-versions = ">=3.5"
 
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "fafb334cb038533f851c23d0b63254223abf72ce4f02987e7064b0c95566699a"
+content-hash = "823c551d09646179500b61a7470194ec7d5141195708256fa00ab5c8380db9e9"
 
 [metadata.files]
+ordered-set = [
+    {file = "ordered-set-4.0.2.tar.gz", hash = "sha256:ba93b2df055bca202116ec44b9bead3df33ea63a7d5827ff8e16738b97f33a95"},
+]
