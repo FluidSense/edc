@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "edc"
-version = "0.2.0"
+version = "0.2.1"
 description = "Search for Evidence Counterfactuals"
 authors = ["Your Name <you@example.com>"]
 
