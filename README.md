@@ -1,3 +1,15 @@
+_Disclaimer:_ This code is fully owned and created by yramon, whom this is forked from.
+This fork is intended to be easier to setup through denoting it as a package.
+
+## To install:  
+```bash
+pip install git+https://github.com/FluidSense/edc/master.git
+
+OR
+
+poetry add git+https://github.com/FluidSense/edc/master.git
+```
+
 # Heuristic best-first search algorithm for finding Evidence Counterfactuals (SEDC)
 
 The SEDC algorithm is a model-agnostic heuristic best-first search algorithm for finding Evidence Counterfactuals, which are instance-level explanations for explaining model predictions of any classifier. It returns a minimal set of features so that removing these features results in a predicted class change. "Removing" means setting the corresponding feature value to zero. SEDC has been originally proposed [in this paper](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2282998) for explaining document classifications. (Read [here](https://www.kdnuggets.com/2020/05/evidence-counterfactuals-predictive-models-big-data.html) our blogpost on the use of Evidence Counterfactuals.)
