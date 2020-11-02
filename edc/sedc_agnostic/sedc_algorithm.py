@@ -312,11 +312,11 @@ class SEDC_Explainer(object):
                 inds_2.append(inds[i][0])
             explanation_set_adjusted = []
             for i in range(np.size(inds)):
-                j = inds_2[i]
+                j = inds_2[i][0]
                 explanation_set_adjusted.append(explanation_set[j])
             explanations_score_change_adjusted = []
             for i in range(np.size(inds)):
-                j = inds_2[i]
+                j = inds_2[i][0]
                 explanations_score_change_adjusted.append(explanations_score_change[j])
             explanation_set = explanation_set_adjusted
             explanations_score_change = explanations_score_change_adjusted
