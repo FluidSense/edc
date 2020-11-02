@@ -17,7 +17,7 @@ class SEDC_Explainer(object):
     
     def __init__(self, feature_names, classifier_fn, threshold_classifier,
                  max_iter = 50, max_explained = 1, BB = True, max_features = 30, 
-                 time_maximum = 120):
+                 time_maximum = 120, silent = False):
         
         """ Init function
         
@@ -38,7 +38,7 @@ class SEDC_Explainer(object):
             threshold value, then the instance is predicted as positive. 
             We have no default value, because it is important the user decides 
             a good value for the threshold. 
-            
+
             feature_names: [numpy.array] contains the interpretable feature names, 
             such as the words themselves in case of document classification or the names 
             of visited URLs.
@@ -68,6 +68,11 @@ class SEDC_Explainer(object):
         self.BB=BB
         self.max_features=max_features
         self.time_maximum=time_maximum
+        self.silent = silent
+
+    def conditional_print(self, *args):
+        if not self.silent:
+            print(*args)
         
     def explanation(self, instance):
         """ Generates evidence counterfactual explanation for the instance.
@@ -97,7 +102,7 @@ class SEDC_Explainer(object):
         """
         
         # *** INITIALIZATION ***
-        print("Start initialization...")
+        self.conditional_print("Start initialization...")
         tic = time.time()       
         instance = lil_matrix(instance)
         iteration = 0
@@ -120,14 +125,14 @@ class SEDC_Explainer(object):
         
         feature_set = [frozenset(x) for x in indices_active_elements]
         
-        print('Initialization is complete.')
-        print('\n Elapsed time %d \n' %(time.time() - tic))
+        self.conditional_print('Initialization is complete.')
+        self.conditional_print('\n Elapsed time %d \n' %(time.time() - tic))
         
         # *** WHILE LOOP ***
         while (iteration < self.max_iter) and (nb_explanations < self.max_explained) and (len(candidates_to_expand) != 0) and (len(explanation_candidates) != 0) and ((time.time() - tic) < self.time_maximum): 
                         
             iteration += 1
-            print('\n Iteration %d \n' %iteration)
+            self.conditional_print('\n Iteration %d \n' %iteration)
             
             if (iteration==1):
                 perturbed_instances = [perturb_fn(x, inst = instance.copy()) for x in explanation_candidates]
@@ -168,7 +173,7 @@ class SEDC_Explainer(object):
             # *** IF LOOP ***
             if (len(candidates_to_expand_updated) == 0) or (nb_explanations >= self.max_explained):
                 
-                print("Stop iterations...")
+                self.conditional_print("Stop iterations...")
                 explanation_candidates = [] #stop algorithm
             
             elif (len(candidates_to_expand_updated) != 0):
@@ -187,7 +192,7 @@ class SEDC_Explainer(object):
                 # *** WHILE LOOP ***                       
                 while ((len(explanation_candidates) == 0) and (it < len(scores_candidates_to_expand2)) and ((time.time() - tic) < self.time_maximum)):
 
-                    print('While loop iteration %d' %it)
+                    self.conditional_print('While loop iteration %d' %it)
 
                     if (it != 0):
                         for index in indices:
@@ -207,12 +212,12 @@ class SEDC_Explainer(object):
                    
                     it += 1
                     
-            print('\n Elapsed time %d \n' %(time.time() - tic))
+            self.conditional_print('\n Elapsed time %d \n' %(time.time() - tic))
 
 
         # *** FINAL PART OF ALGORITHM ***                 
-        print("Iterations are done.") 
-           
+        self.conditional_print("Iterations are done.")
+
         explanation_set=[]
         explanation_feature_names=[]
         for i in range(len(explanations)):
@@ -237,7 +242,7 @@ class SEDC_Explainer(object):
                 inds_2.append(inds[i][0])
             explanation_set_adjusted=[]
             for i in range(np.size(inds)):
-                j=inds_2[i][0]
+                j=inds_2[i]
                 explanation_set_adjusted.append(explanation_set[j])
             explanations_score_change_adjusted=[]
             for i in range(np.size(inds)):
@@ -247,6 +252,6 @@ class SEDC_Explainer(object):
             explanations_score_change = explanations_score_change_adjusted
         
         time_elapsed = time.time() - tic
-        print('\n Total elapsed time %d \n' %time_elapsed)
+        self.conditional_print('\n Total elapsed time %d \n' %time_elapsed)
 
         return {'explanation set': explanation_set[0:self.max_explained], 'number active elements': number_active_elements, 'number explanations found': number_explanations, 'size smallest explanation': minimum_size_explanation, 'time elapsed': time_elapsed, 'differences score':explanations_score_change[0:self.max_explained], 'iterations': iteration}
