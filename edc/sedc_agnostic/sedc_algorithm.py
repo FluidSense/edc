@@ -144,7 +144,7 @@ class SEDC_Explainer(object):
         self.conditional_print("\n Elapsed time %d \n" % (time.time() - tic))
 
         # *** WHILE LOOP ***
-        with tqdm(total=self.max_iter) as pbar:
+        with tqdm(total=self.max_iter, leave=True, position=0) as pbar:
             while (
                 (iteration < self.max_iter)
                 and (nb_explanations < self.max_explained)
