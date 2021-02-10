@@ -1,12 +1,14 @@
 [tool.poetry]
 name = "edc"
-version = "0.3.0"
+version = "0.3.1"
 description = "Search for Evidence Counterfactuals"
 authors = ["Your Name <you@example.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
 ordered-set = "^4.0.2"
+tqdm = "^4.56.1"
+scipy = "^1.6.0"
 
 [tool.poetry.dev-dependencies]
 black = "^20.8b1"

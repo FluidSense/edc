@@ -9,6 +9,7 @@ import numpy as np
 from scipy.sparse import lil_matrix
 from ordered_set import OrderedSet
 from itertools import compress
+from tqdm import tqdm
 
 from .fn_sedc import perturb_fn, expand_and_prune
 
@@ -143,7 +144,7 @@ class SEDC_Explainer(object):
         self.conditional_print("\n Elapsed time %d \n" % (time.time() - tic))
 
         # *** WHILE LOOP ***
-        with tdqm(total=self.max_iter) as pbar:
+        with tqdm(total=self.max_iter) as pbar:
             while (
                 (iteration < self.max_iter)
                 and (nb_explanations < self.max_explained)
