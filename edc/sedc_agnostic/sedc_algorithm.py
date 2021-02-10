@@ -27,6 +27,7 @@ class SEDC_Explainer(object):
         max_features=30,
         time_maximum=120,
         silent=False,
+        showProgress=True
     ):
 
         """Init function
@@ -79,6 +80,7 @@ class SEDC_Explainer(object):
         self.max_features = max_features
         self.time_maximum = time_maximum
         self.silent = silent
+        self.showProgress = showProgress
 
     def conditional_print(self, *args):
         if not self.silent:
@@ -141,149 +143,151 @@ class SEDC_Explainer(object):
         self.conditional_print("\n Elapsed time %d \n" % (time.time() - tic))
 
         # *** WHILE LOOP ***
-        while (
-            (iteration < self.max_iter)
-            and (nb_explanations < self.max_explained)
-            and (len(candidates_to_expand) != 0)
-            and (len(explanation_candidates) != 0)
-            and ((time.time() - tic) < self.time_maximum)
-        ):
+        with tdqm(total=self.max_iter) as pbar:
+            while (
+                (iteration < self.max_iter)
+                and (nb_explanations < self.max_explained)
+                and (len(candidates_to_expand) != 0)
+                and (len(explanation_candidates) != 0)
+                and ((time.time() - tic) < self.time_maximum)
+            ):
 
-            iteration += 1
-            self.conditional_print("\n Iteration %d \n" % iteration)
+                iteration += 1
+                pbar.update(1)
+                self.conditional_print("\n Iteration %d \n" % iteration)
 
-            if iteration == 1:
-                perturbed_instances = [
-                    perturb_fn(x, inst=instance.copy()) for x in explanation_candidates
+                if iteration == 1:
+                    perturbed_instances = [
+                        perturb_fn(x, inst=instance.copy()) for x in explanation_candidates
+                    ]
+                    scores_explanation_candidates = [
+                        self.classifier_fn(x) for x in perturbed_instances
+                    ]
+                    scores_candidates_to_expand = scores_explanation_candidates.copy()
+
+                scores_perturbed_new_combinations = [
+                    x[0] for x in scores_explanation_candidates
                 ]
-                scores_explanation_candidates = [
-                    self.classifier_fn(x) for x in perturbed_instances
-                ]
-                scores_candidates_to_expand = scores_explanation_candidates.copy()
 
-            scores_perturbed_new_combinations = [
-                x[0] for x in scores_explanation_candidates
-            ]
-
-            # ***CHECK IF THERE ARE EXPLANATIONS***
-            explanations += list(
-                compress(
-                    explanation_candidates,
-                    scores_perturbed_new_combinations < self.threshold_classifier,
-                )
-            )
-            nb_explanations += len(
-                list(
+                # ***CHECK IF THERE ARE EXPLANATIONS***
+                explanations += list(
                     compress(
                         explanation_candidates,
                         scores_perturbed_new_combinations < self.threshold_classifier,
                     )
                 )
-            )
-            explanations_sets += list(
-                compress(
-                    explanation_candidates,
-                    scores_perturbed_new_combinations < self.threshold_classifier,
+                nb_explanations += len(
+                    list(
+                        compress(
+                            explanation_candidates,
+                            scores_perturbed_new_combinations < self.threshold_classifier,
+                        )
+                    )
                 )
-            )
-            explanations_sets = [set(x) for x in explanations_sets]
-            explanations_score_change += list(
-                compress(
-                    scores_explanation_candidates,
-                    scores_perturbed_new_combinations < self.threshold_classifier,
+                explanations_sets += list(
+                    compress(
+                        explanation_candidates,
+                        scores_perturbed_new_combinations < self.threshold_classifier,
+                    )
                 )
-            )
+                explanations_sets = [set(x) for x in explanations_sets]
+                explanations_score_change += list(
+                    compress(
+                        scores_explanation_candidates,
+                        scores_perturbed_new_combinations < self.threshold_classifier,
+                    )
+                )
 
-            # Adjust max_length
-            if self.BB == True:
-                if len(explanations) != 0:
-                    lengths = []
-                    for explanation in explanations:
-                        lengths.append(len(explanation))
-                    lengths = np.array(lengths)
-                    max_length = lengths.min()
+                # Adjust max_length
+                if self.BB == True:
+                    if len(explanations) != 0:
+                        lengths = []
+                        for explanation in explanations:
+                            lengths.append(len(explanation))
+                        lengths = np.array(lengths)
+                        max_length = lengths.min()
+                    else:
+                        max_length = number_active_elements
                 else:
                     max_length = number_active_elements
-            else:
-                max_length = number_active_elements
 
-            # Eliminate combinations from candidates_to_expand ("best-first" candidates) that can not be expanded
-            # Pruning based on Branch & Bound=True, max. features allowed and number of active features
-            candidates_to_expand_updated = []
-            scores_candidates_to_expand_updated = []
-            for j, combination in enumerate(candidates_to_expand):
-                if (
-                    (len(combination) < number_active_elements)
-                    and (len(combination) < max_length)
-                    and (len(combination) < self.max_features)
-                ):
-                    candidates_to_expand_updated.append(combination)
-                    scores_candidates_to_expand_updated.append(
-                        scores_candidates_to_expand[j]
-                    )
+                # Eliminate combinations from candidates_to_expand ("best-first" candidates) that can not be expanded
+                # Pruning based on Branch & Bound=True, max. features allowed and number of active features
+                candidates_to_expand_updated = []
+                scores_candidates_to_expand_updated = []
+                for j, combination in enumerate(candidates_to_expand):
+                    if (
+                        (len(combination) < number_active_elements)
+                        and (len(combination) < max_length)
+                        and (len(combination) < self.max_features)
+                    ):
+                        candidates_to_expand_updated.append(combination)
+                        scores_candidates_to_expand_updated.append(
+                            scores_candidates_to_expand[j]
+                        )
 
-            # *** IF LOOP ***
-            if (len(candidates_to_expand_updated) == 0) or (
-                nb_explanations >= self.max_explained
-            ):
-
-                self.conditional_print("Stop iterations...")
-                explanation_candidates = []  # stop algorithm
-
-            elif len(candidates_to_expand_updated) != 0:
-
-                explanation_candidates = []
-                it = 0
-                indices = []
-
-                scores_candidates_to_expand2 = []
-                for score in scores_candidates_to_expand_updated:
-                    if score[0] < self.threshold_classifier:
-                        scores_candidates_to_expand2.append(2 * score_predicted)
-                    else:
-                        scores_candidates_to_expand2.append(score)
-
-                # *** WHILE LOOP ***
-                while (
-                    (len(explanation_candidates) == 0)
-                    and (it < len(scores_candidates_to_expand2))
-                    and ((time.time() - tic) < self.time_maximum)
+                # *** IF LOOP ***
+                if (len(candidates_to_expand_updated) == 0) or (
+                    nb_explanations >= self.max_explained
                 ):
 
-                    self.conditional_print("While loop iteration %d" % it)
+                    self.conditional_print("Stop iterations...")
+                    explanation_candidates = []  # stop algorithm
 
-                    if it != 0:
-                        for index in indices:
-                            scores_candidates_to_expand2[index] = 2 * score_predicted
+                elif len(candidates_to_expand_updated) != 0:
 
-                    index_combi_max = np.argmax(
-                        score_predicted - scores_candidates_to_expand2
-                    )
-                    indices.append(index_combi_max)
-                    expanded_combis.append(
-                        candidates_to_expand_updated[index_combi_max]
-                    )
+                    explanation_candidates = []
+                    it = 0
+                    indices = []
 
-                    comb_to_expand = candidates_to_expand_updated[index_combi_max]
-                    func = expand_and_prune(
-                        comb_to_expand,
-                        expanded_combis,
-                        feature_set,
-                        candidates_to_expand_updated,
-                        explanations_sets,
-                        scores_candidates_to_expand_updated,
-                        instance,
-                        self.classifier_fn,
-                    )
-                    explanation_candidates = func[0]
-                    candidates_to_expand = func[1]
-                    expanded_combis = func[2]
-                    scores_candidates_to_expand = func[3]
-                    scores_explanation_candidates = func[4]
+                    scores_candidates_to_expand2 = []
+                    for score in scores_candidates_to_expand_updated:
+                        if score[0] < self.threshold_classifier:
+                            scores_candidates_to_expand2.append(2 * score_predicted)
+                        else:
+                            scores_candidates_to_expand2.append(score)
 
-                    it += 1
+                    # *** WHILE LOOP ***
+                    while (
+                        (len(explanation_candidates) == 0)
+                        and (it < len(scores_candidates_to_expand2))
+                        and ((time.time() - tic) < self.time_maximum)
+                    ):
 
-            self.conditional_print("\n Elapsed time %d \n" % (time.time() - tic))
+                        self.conditional_print("While loop iteration %d" % it)
+
+                        if it != 0:
+                            for index in indices:
+                                scores_candidates_to_expand2[index] = 2 * score_predicted
+
+                        index_combi_max = np.argmax(
+                            score_predicted - scores_candidates_to_expand2
+                        )
+                        indices.append(index_combi_max)
+                        expanded_combis.append(
+                            candidates_to_expand_updated[index_combi_max]
+                        )
+
+                        comb_to_expand = candidates_to_expand_updated[index_combi_max]
+                        func = expand_and_prune(
+                            comb_to_expand,
+                            expanded_combis,
+                            feature_set,
+                            candidates_to_expand_updated,
+                            explanations_sets,
+                            scores_candidates_to_expand_updated,
+                            instance,
+                            self.classifier_fn,
+                        )
+                        explanation_candidates = func[0]
+                        candidates_to_expand = func[1]
+                        expanded_combis = func[2]
+                        scores_candidates_to_expand = func[3]
+                        scores_explanation_candidates = func[4]
+
+                        it += 1
+
+                self.conditional_print("\n Elapsed time %d \n" % (time.time() - tic))
 
         # *** FINAL PART OF ALGORITHM ***
         self.conditional_print("Iterations are done.")
